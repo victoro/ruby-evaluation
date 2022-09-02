@@ -5,17 +5,23 @@ Practice dockerized rails app with postgresql, redis, nginx, sidekiq, unicorn
 https://semaphoreci.com/community/tutorials/dockerizing-a-ruby-on-rails-application
 
 # INITIAL SETUP:
-1) Build rails toolbox: `docker build -t rails-toolbox -f Dockerfile.rails .`
+1) Create .env file: `cp env-example .env`
 2) Build environment: `docker compose up --build`
+3) Create schema 
+    a) `docker compose run drkiq rake db:reset`
+    b) `docker compose run drkiq rake db:migrate`
 
 # START CONTAINERS:
  `docker compose up`
+
+# LIST ACTIVE CONTAINERS
+`docker ps`
 
 # STOP CONTAINERS:
 `docker compose stop` or `CTRL+C` if containers started as daemon
 
 # SSH IN CONTAINERS to run rails commands:
-`docker exec -it "container_hash" bash`
+`docker exec -it "container_hash" bash` or use `make ssh` to
 
-# RUN COMMANDS outside containers:
-`docker compose run "container_tag" rails ...`
+# RUNNING RAILS SPECIFIC COMMANDS:
+`docker compose run "container_tag" rails ...` or use `make ssh` to bash into app container and run commands from there
