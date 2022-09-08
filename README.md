@@ -4,6 +4,14 @@ Practice dockerized rails app with postgresql, redis, nginx, sidekiq, unicorn
 # SOURCE:
 https://semaphoreci.com/community/tutorials/dockerizing-a-ruby-on-rails-application
 
+# PREREQUISITE:
+for windows OS:
+    a) WSL2 installed
+    b) docker desktop installed
+
+for UNIX systems:
+    a) docker installed
+
 # INITIAL SETUP:
 1) Create .env file: `cp env-example .env`
 2) Build environment: `docker compose up --build`
@@ -25,3 +33,4 @@ https://semaphoreci.com/community/tutorials/dockerizing-a-ruby-on-rails-applicat
 
 # RUNNING RAILS SPECIFIC COMMANDS:
 `docker compose run "container_tag" rails ...` or use `make ssh` to bash into app container and run commands from there
+[still having some issues here, generated files are owned by `root` user, must be owned by current user `chown $USER:$USER <filename>` or `chown -R $USER:$USER <dirname>]
