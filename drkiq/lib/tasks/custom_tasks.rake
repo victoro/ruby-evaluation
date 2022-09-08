@@ -27,5 +27,16 @@ namespace :custom_tasks do
             exit!
         end
     end
-    
+    namespace :export_db do
+        desc 'Export db data'
+        namespace :courses do
+            task :not_updated_lately => :environment do
+                ExportCsv.courses_not_updated_lately
+            end
+            task :updated_lately => :environment do
+                ExportCsv.courses_updated_lately
+            end
+        end
+        
+    end
 end
