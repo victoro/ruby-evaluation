@@ -10,19 +10,7 @@ class Parser
         @results = []
         @parsed_line = {}
         raise sprintf("File does not exist %s", file_path) unless File.exist?(file_path)
-        
-        # code = 'C100'
-        # result = LaboratoryCodeType.type_of(code)
-        # format = LaboratoryResultFormatValue.value_of('++')
-        # comment = 'comment'
-        # results << LaboratoryTestResult.new(code, result, format, comment)
-
-        # code = 'C200'
-        # result = LaboratoryCodeType.type_of(code)
-        # format = LaboratoryResultFormatValue.value_of('++')
-        # comment = 'comment'
-        # results << LaboratoryTestResult.new(code, result, format, comment)
-        
+    
         File.foreach(file_path) do |line|
             parsed_data = parse line unless line.empty?
             parsed_data.each do |id, lab_results|
@@ -38,7 +26,7 @@ class Parser
         @results ||= []
     end
 
-    # private
+    private
     def parse(line)
         line_arr_data = line.split('|')
         obx_data = parse_obx(line_arr_data) if line_arr_data.include?('OBX')
@@ -58,9 +46,7 @@ class Parser
                 @parsed_line[nte_data[:id]] = nte_data
             end
         end
-        puts "============== start parsed line =================="
-        puts @parsed_line
-        puts "================ end parsed line ================"
+
         @parsed_line
     end
 
@@ -77,9 +63,6 @@ class Parser
     end
    
     def save(lab_results)
-        puts "================================"
-        puts lab_results
-        puts "================================"
         result = LaboratoryCodeType.type_of(lab_results[:code])
         format = LaboratoryResultFormatValue.value_of(lab_results[:format]) || lab_results[:format].to_f unless lab_results[:format].nil?
         comment = lab_results[:comment].to_s || ""
