@@ -18,7 +18,8 @@ class ExportCsv
         end
 
         def archive_file(input, output, delete = true)
-            Archive.to_archive(input, output)
+            Archive.to_archive(input, output) if File.exists?(input)
+            delete &&= File.exists?(input)
             File.delete(input) if delete
         end
     end
