@@ -37,6 +37,5 @@ namespace :custom_tasks do
                 ExportCsv.courses_updated_lately
             end
         end
-        
     end
 end
