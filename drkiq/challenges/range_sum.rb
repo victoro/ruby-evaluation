@@ -24,19 +24,26 @@ class RangeSum
     end
 
     def do_sum(min, max, as_arr)
-
-        puts "Executing sum between #{min} and #{max}"
-        
-        puts "Using sum with array functions #{as_arr}" if as_arr
-        return @sum = [min..max].map(& :to_a).sum([]).sum if as_arr
-        
+        return do_arr_sum(min, max) if as_arr
+    
+        puts "Executing basic iterative between #{min} and #{max}"
         until (min > max)
             @sum += min
             min +=1
         end
         @sum
     end
-    
+
+    def do_consecutive_sum(min, max)
+        puts "Executing n(n+1)/2 sum between #{min} and #{max}"
+        @sum = (max*(max+1))/2 - (min*(min-1))/2
+    end
+  
+    def do_arr_sum(min, max)
+        puts "Executing array sum between #{min} and #{max}"
+        return @sum = [min..max].map(& :to_a).sum([]).sum
+    end
+
 end
 
 range_sum = RangeSum.new()
@@ -47,3 +54,5 @@ min = [a, b].min
 max = [a, b].max
 
 puts range_sum.do_sum(min, max, !(ARGV.nil? || ARGV.empty?))
+puts range_sum.do_consecutive_sum(min, max)
+puts range_sum.do_arr_sum(min, max)
