@@ -1,4 +1,5 @@
 require 'byebug'
+require 'json'
 class PokerHandling
     attr_reader :table_cards, :player_cards, :players_number, :deck
     
@@ -13,10 +14,11 @@ class PokerHandling
     def initialize(players_number:)
         @hand_cards = {}
         @players_number = players_number
-        @table_cards = []
+        @table_cards = {}
         @deck = []
         generate_deck
         generate_table_cards
+        set_winner_of table_results
     end
 
     def generate_deck
@@ -34,85 +36,109 @@ class PokerHandling
     end
 
     def generate_table_cards()
-        i = 0
+        i = 1
         begin
-            @table_cards << generate_player_cards
+            @table_cards["player:#{i}"]  = generate_player_cards
             i +=1
-        end while i < @players_number
+        end while i <= @players_number
     end
+
+    # def generate_table_cards()
+    #     i = 0
+    #     begin
+    #         @table_cards << generate_player_cards
+    #         i +=1
+    #     end while i < @players_number
+    # end
 
     def table_results
         # byebug
-        results  = []
-        @table_cards.each_with_index do |player_cards, player_index|
-            # byebug
-            player_report = {}
-            player_report[:cards] = player_cards
-            report = combo_report_of(player_cards: player_cards)
-            player_report[:report] = report
-            # pick only index
-            player_report[:best_score] = report.detect do |key, value| value end
-            # byebug
-            player_report[:winning_value] = report.keys.index player_report[:best_score].first
-            results[player_index] = player_report
+        results  = {}
+        @table_cards.each do |player_index, player_cards|
+            results[player_index.to_s] = analyze player_cards
         end
         results
     end
 
     def set_winner_of results
-        winning_value = results.min_by { |player_report, player_index| player_report[:winning_value]}[:winning_value]
-        results.select do |index, value|
-            value[:winning_value] == winning_value
+        # min winning_value are best
+        winning_value = results.values.min_by { |player_report, player_index| player_report[:winning_value]}[:winning_value]
+        winners = results.select do |index, value| 
+            value if value[:winning_value] == winning_value
+        end
+        settle_duplicate_of winners
+    end
+
+    def settle_duplicate_of winners
+        puts "We have duplicate winners #{winners.count}" if winners.count > 1
+        
+        group_best_cards = winners.map do 
+            |k, v| {k => v[:analyzed][:kind_group].key(v[:analyzed][:kind_group].values.max) } 
+        end
+        winner = group_best_cards.max_by do |v, l| v.values.first end
+        # byebug
+        puts "winner is #{winner.keys.first}"
+    end
+
+    def analyze(player_cards)
+        hand = group_cards_of hand: player_cards
+        hand[:cards] = player_cards
+        # min index set as best_score
+        win_mapping = set_win_mapping(hand)
+        best_score = win_mapping.detect do |key, value| value end
+        # byebug
+        {
+            :analyzed => hand,
+            :best_score => best_score,
+            :winning_value => win_mapping.keys.index(best_score.first)
+        }
+    end
+
+    private
+
+    def group_cards_of(hand:)
+        raise "Invalid player cards" if (hand.empty? || hand.count != 5)
+        hand.inject({:suite_group => {}, :kind_group => {}}) do |collector, card|
+            collector[:suite_group][card.keys.first] = collector[:suite_group][card.keys.first].to_i + 1
+            collector[:kind_group][card.values.first.to_s] = collector[:kind_group][card.values.first.to_s].to_i + 1
+            collector
         end
     end
 
-    def combo_report_of(player_cards:)
-        hand = analyze hand: player_cards
+    def set_win_mapping(hand)
         {
             :has_royal => has_royal?(hand),
             :straigth_flush => has_straight_flush?(hand),
             :four_of_a_kind => has_four_of_a_kind?(hand),
             :full_house => has_full_house?(hand),
             :flush => has_flush?(hand),
-            :straight => hand[:straigth],
+            :straight => has_straight?(hand),
             :three_of_a_kind => has_three_of_a_kind?(hand),
             :two_pairs => has_two_pairs?(hand),
             :one_pair => has_one_pair?(hand),
-            :max_card => true
+            :max_card => true   
         }
     end
 
-    private
-
-    def analyze(hand:)
-        raise "Invalid player cards" if (hand.empty? || hand.count != 5)
-        card_values = hand.map(& :values ).flatten
-        hand.inject({:suite => {}, :kind => {}, :straigth => false, :min => card_values.min, :max => card_values.max}) do |collector, card|
-            collector[:suite][card.keys.first] = collector[:suite][card.keys.first].to_i + 1
-            collector[:kind][card.values.first.to_s] = collector[:kind][card.values.first.to_s].to_i + 1
-            collector[:straigth] = card_values.sum == do_consecutive_sum(card_values.min, card_values.max)
-            collector
-        end
-    end
-
     def has_flush? hand
-        hand[:suite].count == 1
+        hand[:suite_group].count == 1
     end
 
     def has_straight? hand
-        hand[:straight]
+        card_values = hand[:cards].collect do |v| v.values.first end
+        card_values.sum == do_consecutive_sum(card_values.min, card_values.max)
     end
 
     def has_straight_flush? hand
-        has_flush?(hand) && is_straight?(hand)
+        has_flush?(hand) && has_straight?(hand)
     end
 
     def has_royal? hand
-        has_straight_flush?(hand) && hand[:suite].has_key?(:clovers)
+        has_straight_flush?(hand) && hand[:suite_group].has_key?(:clovers)
     end
 
     def has_four_of_a_kind? hand
-        hand[:kind].values.include? 4
+        hand[:kind_group].values.include? 4
     end
 
     def has_one_pair? hand
@@ -132,11 +158,11 @@ class PokerHandling
     end
 
     def get_pairs_of hand
-        pairs = hand[:kind].select do |index, value| value == 2 end
+        hand[:kind_group].select do |index, value| value == 2 end
     end
 
     def get_three_of hand
-        hand[:kind].select do |index, value| value == 3 end
+        hand[:kind_group].select do |index, value| value == 3 end
     end
 
     def do_consecutive_sum(min, max)
@@ -148,7 +174,11 @@ end
 poker_handling = PokerHandling.new(players_number: 5)
 # puts poker_handling.deck.count
 # poker_handling.generate_table_cards
-puts poker_handling.table_results.inspect
+puts "rendering table cards"
+poker_handling.table_results.each do |result|
+    puts result.to_json
+end
+# puts poker_handling.set_winner_of poker_handling.table_results
 # puts poker_handling.tab
 # puts poker_handling.combo_report_of player_cards: poker_handling.table_cards.first
 # arr.inject({}) do |sum, val| 
